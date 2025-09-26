@@ -1,17 +1,17 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useRole } from "../auth/useRole";
 
 export default function Dashboard() {
   const role = useRole();
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!role) return; // wait for role to be decoded
-    if (role === "Backoffice") navigate("/backoffice", { replace: true });
-    else if (role === "Operator") navigate("/operator", { replace: true });
-    else navigate("/login", { replace: true });
-  }, [role, navigate]);
+  // while decoding role (first render), show a tiny placeholder
+  if (role === null || role === undefined) {
+    return <div className="p-6 text-gray-600">Loading dashboard…</div>;
+  }
 
-  return <div className="p-6 text-gray-600">Loading dashboard…</div>;
+  if (role === "Backoffice") return <Navigate to="/backoffice" replace />;
+  if (role === "Operator")   return <Navigate to="/operator" replace />;
+
+  // any other authenticated role (e.g., EvOwner) → unauthorized page
+  return <Navigate to="/unauthorized" replace />;
 }
