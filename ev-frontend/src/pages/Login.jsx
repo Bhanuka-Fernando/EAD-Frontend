@@ -7,6 +7,7 @@ import { useRole } from "../auth/useRole";
 import toast, { Toaster } from "react-hot-toast";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { jwtDecode } from "jwt-decode"; // add this
 
 const schema = z.object({
   username: z.string().min(3),
@@ -19,7 +20,11 @@ export default function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-  if (token && role) return <Navigate to="/dashboard" replace />;
+  // allowlist only these roles for web
+  const allowed = role === "Backoffice" || role === "Operator";
+
+  if (token && allowed) return <Navigate to="/dashboard" replace />;
+  if (token && !allowed) return <Navigate to="/unauthorized" replace />; // <-- prevents loop
 
   const { register, handleSubmit, formState: { errors } } =
     useForm({ resolver: zodResolver(schema) });
@@ -27,10 +32,25 @@ export default function Login() {
   const onSubmit = async (values) => {
     try {
       setLoading(true);
-      const data = await authApi.login(values); // { token, role?, username? }
+      const data = await authApi.login(values); // expect { token, role? }
+
+      // determine role from response or decode token
+      let r = data?.role;
+      if (!r && data?.token) {
+        try {
+          const decoded = jwtDecode(data.token);
+          r = decoded?.role || (Array.isArray(decoded?.roles) ? decoded.roles[0] : undefined);
+        } catch {}
+      }
+
+      // block ev_owner (or any non-allowed)
+      if (!["Backoffice", "Operator"].includes(r)) {
+        toast.error("Web access is only for Backoffice and Station Operator.");
+        return; // do NOT signIn
+      }
+
       signIn(data.token);
       toast.success("Logged in");
-      // Let AuthContext update, then navigate
       setTimeout(() => navigate("/dashboard", { replace: true }), 0);
     } catch (e) {
       toast.error(e.message || "Login failed");
@@ -59,7 +79,8 @@ export default function Login() {
           </button>
         </form>
 
-        {role === "Backoffice" && (
+        {/* optional: only show when already authenticated as Backoffice (rare on login page) */}
+        {allowed && role === "Backoffice" && (
           <div className="mt-6 text-center text-sm">
             <Link to="/register" className="text-blue-600">Create user (Backoffice)</Link>
           </div>

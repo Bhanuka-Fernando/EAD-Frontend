@@ -8,13 +8,14 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import BackofficeDashboard from "./pages/BackofficeDashboard";
 import OperatorDashboard from "./pages/OperatorDashboard";
+import Unauthorized from "./pages/Unauthorized";
 
 const router = createBrowserRouter([
   { path: "/", element: <Login /> },
   { path: "/login", element: <Login /> },
 
   {
-    element: <ProtectedRoute />,
+    element: <ProtectedRoute />, // requires a valid token
     children: [
       { path: "/dashboard", element: <Dashboard /> },
 
@@ -31,6 +32,8 @@ const router = createBrowserRouter([
           { path: "/operator", element: <OperatorDashboard /> },
         ],
       },
+
+      { path: "/unauthorized", element: <Unauthorized /> },
     ],
   },
 
