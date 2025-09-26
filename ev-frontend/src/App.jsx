@@ -1,13 +1,46 @@
-import { useState } from 'react'
-import './App.css'
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { AuthProvider } from "./auth/AuthContext";
+import ProtectedRoute from "./auth/ProtectedRoute";
+import RoleGate from "./auth/RoleGate";
 
-function App() {
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Dashboard from "./pages/Dashboard";
+import BackofficeDashboard from "./pages/BackofficeDashboard";
+import OperatorDashboard from "./pages/OperatorDashboard";
 
+const router = createBrowserRouter([
+  { path: "/", element: <Login /> },
+  { path: "/login", element: <Login /> },
+
+  {
+    element: <ProtectedRoute />,
+    children: [
+      { path: "/dashboard", element: <Dashboard /> },
+
+      {
+        element: <RoleGate allowed={["Backoffice"]} />,
+        children: [
+          { path: "/backoffice", element: <BackofficeDashboard /> },
+          { path: "/register", element: <Register /> },
+        ],
+      },
+      {
+        element: <RoleGate allowed={["Operator"]} />,
+        children: [
+          { path: "/operator", element: <OperatorDashboard /> },
+        ],
+      },
+    ],
+  },
+
+  { path: "*", element: <Login /> }
+]);
+
+export default function App() {
   return (
-    <>
-      
-    </>
-  )
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
+  );
 }
-
-export default App
