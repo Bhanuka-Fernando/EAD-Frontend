@@ -61,7 +61,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50">
       <Toaster />
       <div className="w-full max-w-md rounded-2xl border bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold mb-1">EV Web Login</h1>
+        <h1 className="text-2xl font-semibold mb-1">EV Charging Station Booking System</h1>
         <p className="text-sm text-gray-600 mb-6">Backoffice & Station Operator</p>
         <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
           <div>
