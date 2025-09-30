@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import BackofficeDashboard from "./pages/BackofficeDashboard";
 import OperatorDashboard from "./pages/OperatorDashboard";
 import Unauthorized from "./pages/Unauthorized";
+import MyProfile from "./pages/MyProfile_web";
 
 const router = createBrowserRouter([
   { path: "/", element: <Login /> },
@@ -30,6 +31,12 @@ const router = createBrowserRouter([
         element: <RoleGate allowed={["Operator"]} />,
         children: [
           { path: "/operator", element: <OperatorDashboard /> },
+        ],
+      },
+
+      { element:<RoleGate allowed={["Backoffice","Operator"]}/>,
+        children: [
+          { path: "/me/profile", element: <MyProfile/>},
         ],
       },
 
