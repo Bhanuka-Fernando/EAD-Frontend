@@ -10,6 +10,8 @@ import BackofficeDashboard from "./pages/BackofficeDashboard";
 import OperatorDashboard from "./pages/OperatorDashboard";
 import Unauthorized from "./pages/Unauthorized";
 import MyProfile from "./pages/MyProfile_web";
+import OwnersList from "./pages/owners/OwnersList";
+import OwnerUpsert from "./pages/owners/OwnerUpsert";
 
 const router = createBrowserRouter([
   { path: "/", element: <Login /> },
@@ -25,6 +27,9 @@ const router = createBrowserRouter([
         children: [
           { path: "/backoffice", element: <BackofficeDashboard /> },
           { path: "/register", element: <Register /> },
+          { path: "/owners", element: <OwnersList /> },
+          { path: "/owners/new", element: <OwnerUpsert /> },
+          { path: "/owners/:nic", element: <OwnerUpsert /> },
         ],
       },
       {
