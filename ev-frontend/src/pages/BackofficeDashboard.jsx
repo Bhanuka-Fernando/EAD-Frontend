@@ -42,12 +42,12 @@ export default function BackofficeDashboard() {
               <ActionCard
                 title="Register New Station"
                 description="Location, type, slots"
-                to="#/stations/new"
+                to="/stations/new"
               />
               <ActionCard
                 title="Create EV Owner"
                 description="Register by NIC"
-                to="#/owners/new"
+                to="/owners/new"
               />
               <ActionCard
                 title="Create Booking"

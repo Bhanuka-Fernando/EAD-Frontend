@@ -12,6 +12,10 @@ import Unauthorized from "./pages/Unauthorized";
 import MyProfile from "./pages/MyProfile_web";
 import OwnersList from "./pages/owners/OwnersList";
 import OwnerUpsert from "./pages/owners/OwnerUpsert";
+import StationsList from "./pages/stations/StationsList";
+import StationUpsert from "./pages/stations/StationUpsert";
+import StationSchedule from "./pages/stations/StationSchedule";
+
 
 const router = createBrowserRouter([
   { path: "/", element: <Login /> },
@@ -30,12 +34,18 @@ const router = createBrowserRouter([
           { path: "/owners", element: <OwnersList /> },
           { path: "/owners/new", element: <OwnerUpsert /> },
           { path: "/owners/:nic", element: <OwnerUpsert /> },
+          { path: "/stations", element: <StationsList /> },
+          { path: "/stations/new", element: <StationUpsert /> },
+          { path: "/stations/:id", element: <StationUpsert /> },
+          { path: "/stations/:id/schedule", element: <StationSchedule /> },
         ],
       },
       {
         element: <RoleGate allowed={["Operator"]} />,
         children: [
           { path: "/operator", element: <OperatorDashboard /> },
+          { path: "/stations", element: <StationsList /> },          
+          { path: "/stations/:id/schedule", element: <StationSchedule /> },
         ],
       },
 

@@ -11,6 +11,7 @@ const createSchema = z.object({
   fullName: z.string().min(3, "Name is required"),
   email: z.string().email("Valid email required"),
   phone: z.string().min(7, "Valid phone required").max(20),
+  password: z.string().min(6, "Password is required"),
 });
 
 const editSchema = createSchema.omit({ nic: true });
@@ -90,6 +91,17 @@ export default function OwnerUpsert() {
             <label className="text-sm font-medium">Phone</label>
             <input className="mt-1 w-full rounded-lg border px-3 py-2" disabled={loading} {...register("phone")} />
             {errors.phone && <p className="text-sm text-red-600">{errors.phone.message}</p>}
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Password</label>
+            <input
+            type="password"
+            className="mt-1 w-full rounded-lg border px-3 py-2"
+            disabled={loading}
+            {...register("password")}
+            />
+            {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
           </div>
 
           <div className="flex gap-3 pt-2">

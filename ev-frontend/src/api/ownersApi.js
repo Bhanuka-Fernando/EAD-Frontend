@@ -23,16 +23,11 @@ export const ownersApi = {
         return res.data;
     },
 
-    activate: async (nic) => {
-        await axiosClient.patch(`/admin/owners/${encodeURIComponent(nic)}/status`);
-    },
-
-    deactivate: async(nic) => {
-        await axiosClient.patch(`/owners/${encodeURIComponent(nic)}/deactivate`);
-    },
-
-    remove: async(nic) => {
-        await axiosClient.delete(`/admin/owners/${encodeURIComponent(nic)}`);
+    activate: async (nic, reason = "Reactivated via Web") => {
+        await axiosClient.patch(
+            `/admin/owners/${encodeURIComponent(nic)}/status`,
+            {isActive:true, reason}
+        );
     },
 };
 

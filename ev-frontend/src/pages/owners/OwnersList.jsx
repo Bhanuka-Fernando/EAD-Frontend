@@ -1,68 +1,82 @@
-import { useEffect, useMemo, useState } from "react";
+// src/pages/owners/OwnersList.jsx
+import { useEffect, useState } from "react";
 import ownersApi from "../../api/ownersApi";
 import { Link } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 
-export default function OwnersList(){
-    const [q, setQ] = useState("");
-    const [activeFilter, setActiveFilter] = useState("all");
-    const [page, setPage] = useState(1);
-    const [pageSize] = useState(10);
+export default function OwnersList() {
+  const [q, setQ] = useState("");
+  const [activeFilter, setActiveFilter] = useState("all"); // all | active | inactive
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
 
-    const [rows, setRows] = useState([]);
-    const [total, setTotal] = useState(0);
-    const [loading, setLoading] = useState(true);
+  const [allRows, setAllRows] = useState([]); // keep everything from API
+  const [rows, setRows] = useState([]);       // filtered + paginated
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-    const isActiveParam = useMemo(() => {
-        if(activeFilter === "active") return true;
-        if(activeFilter === "inactive") return false;
-        return undefined;
-    }, [activeFilter]);
-
-    const fetchData = async() => {
-        try{
-            setLoading(true);
-            const data = await ownersApi.list({q, isActive: isActiveParam, page, pageSize});
-            const items = Array.isArray(data) ? data : data.items ?? [];
-            const t = Array.isArray(data) ? items.length : (data.total ?? items.length);
-            setRows(items);
-            setTotal(t);
-        }catch(e){
-            toast.error(e.message || "Failed to load owners");
-        }finally{
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {fetchData();}, [q, activeFilter, page]);
-    // Actions
-  const ask = (msg) => window.confirm(msg);
-
-  const toggleActive = async (r) => {
+  // fetch all owners once
+  const fetchData = async () => {
     try {
-      if (r.isActive || String(r.status).toLowerCase() === "active") {
-        if (!ask(`Deactivate ${r.fullName || r.nic}?`)) return;
-        await ownersApi.deactivate(r.nic);
-        toast.success("Owner deactivated");
-      } else {
-        if (!ask(`Activate ${r.fullName || r.nic}?`)) return;
-        await ownersApi.activate(r.nic);
-        toast.success("Owner activated");
-      }
-      fetchData();
+      setLoading(true);
+      const data = await ownersApi.list({ page: 1, pageSize: 1000 }); // get a big chunk
+      const items = Array.isArray(data) ? data : data.items ?? [];
+      setAllRows(items);
     } catch (e) {
-      toast.error(e.message || "Action failed");
+      toast.error(e.message || "Failed to load owners");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const remove = async (r) => {
+  // filter + paginate whenever q, filter, page or allRows change
+  useEffect(() => {
+    let filtered = allRows;
+
+    // --- apply search ---
+    if (q.trim()) {
+      const qLower = q.toLowerCase();
+      filtered = filtered.filter(
+        (r) =>
+          (r.nic && r.nic.toLowerCase().includes(qLower)) ||
+          (r.fullName && r.fullName.toLowerCase().includes(qLower)) ||
+          (r.email && r.email.toLowerCase().includes(qLower)) ||
+          (r.phone && r.phone.toLowerCase().includes(qLower))
+      );
+    }
+
+    // --- apply status filter ---
+    if (activeFilter !== "all") {
+      const shouldBeActive = activeFilter === "active";
+      filtered = filtered.filter((r) => {
+        const active = typeof r.isActive === "boolean"
+          ? r.isActive
+          : String(r.status || "").toLowerCase() === "active";
+        return active === shouldBeActive;
+      });
+    }
+
+    // --- pagination ---
+    const start = (page - 1) * pageSize;
+    const paginated = filtered.slice(start, start + pageSize);
+
+    setRows(paginated);
+    setTotal(filtered.length);
+  }, [q, activeFilter, page, allRows, pageSize]);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // --- Activate owner ---
+  const activateOwner = async (r) => {
     try {
-      if (!ask(`Delete ${r.fullName || r.nic}? This is blocked if bookings exist.`)) return;
-      await ownersApi.remove(r.nic);
-      toast.success("Owner deleted");
+      if (!window.confirm(`Activate ${r.fullName || r.nic}?`)) return;
+      await ownersApi.activate(r.nic, "Reactivated by Backoffice");
+      toast.success("Owner activated");
       fetchData();
     } catch (e) {
-      toast.error(e.message || "Delete failed");
+      toast.error(e.message || "Activation failed");
     }
   };
 
@@ -73,9 +87,14 @@ export default function OwnersList(){
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">EV Owners</h1>
-            <p className="text-xs text-gray-500">Manage owners by NIC. Deleting is blocked when bookings exist.</p>
+            <p className="text-xs text-gray-500">
+              Manage owners by NIC. Deleting is blocked when bookings exist.
+            </p>
           </div>
-          <Link to="/owners/new" className="rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 text-sm">
+          <Link
+            to="/owners/new"
+            className="rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 text-sm"
+          >
             + Create Owner
           </Link>
         </div>
@@ -86,13 +105,19 @@ export default function OwnersList(){
             <div className="flex items-center gap-3">
               <input
                 value={q}
-                onChange={(e) => { setQ(e.target.value); setPage(1); }}
+                onChange={(e) => {
+                  setQ(e.target.value);
+                  setPage(1);
+                }}
                 placeholder="Search by NIC, name, email, phone"
                 className="w-72 rounded-lg border px-3 py-2"
               />
               <select
                 value={activeFilter}
-                onChange={(e) => { setActiveFilter(e.target.value); setPage(1); }}
+                onChange={(e) => {
+                  setActiveFilter(e.target.value);
+                  setPage(1);
+                }}
                 className="rounded-lg border px-3 py-2"
               >
                 <option value="all">All statuses</option>
@@ -121,32 +146,55 @@ export default function OwnersList(){
             </thead>
             <tbody className="divide-y">
               {loading && (
-                <tr><td colSpan={6} className="p-6 text-center text-gray-400">Loading…</td></tr>
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-gray-400">
+                    Loading…
+                  </td>
+                </tr>
               )}
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={6} className="p-6 text-center text-gray-400">No owners found</td></tr>
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-gray-400">
+                    No owners found
+                  </td>
+                </tr>
               )}
-              {!loading && rows.map((r) => {
-                const active = typeof r.isActive === "boolean"
-                  ? r.isActive
-                  : (String(r.status || "").toLowerCase() === "active");
-                return (
-                  <tr key={r.nic} className="bg-white/60">
-                    <Td className="font-medium">{r.nic}</Td>
-                    <Td>{r.fullName || "—"}</Td>
-                    <Td>{r.email || "—"}</Td>
-                    <Td>{r.phone || "—"}</Td>
-                    <Td><Badge color={active ? "green" : "gray"}>{active ? "Active" : "Deactivated"}</Badge></Td>
-                    <Td className="text-right pr-4">
-                      <Link to={`/owners/${encodeURIComponent(r.nic)}`} className="mr-2 text-blue-600 hover:underline">Edit</Link>
-                      <button onClick={() => toggleActive(r)} className="mr-2 text-emerald-700 hover:underline">
-                        {active ? "Deactivate" : "Activate"}
-                      </button>
-                      <button onClick={() => remove(r)} className="text-red-600 hover:underline">Delete</button>
-                    </Td>
-                  </tr>
-                );
-              })}
+              {!loading &&
+                rows.map((r) => {
+                  const active =
+                    typeof r.isActive === "boolean"
+                      ? r.isActive
+                      : String(r.status || "").toLowerCase() === "active";
+                  return (
+                    <tr key={r.nic} className="bg-white/60">
+                      <Td className="font-medium">{r.nic}</Td>
+                      <Td>{r.fullName || "—"}</Td>
+                      <Td>{r.email || "—"}</Td>
+                      <Td>{r.phone || "—"}</Td>
+                      <Td>
+                        <Badge color={active ? "green" : "gray"}>
+                          {active ? "Active" : "Deactivated"}
+                        </Badge>
+                      </Td>
+                      <Td className="text-right pr-4">
+                        <Link
+                          to={`/owners/${encodeURIComponent(r.nic)}`}
+                          className="mr-2 text-blue-600 hover:underline"
+                        >
+                          Edit
+                        </Link>
+                        {!active && (
+                          <button
+                            onClick={() => activateOwner(r)}
+                            className="text-emerald-700 hover:underline"
+                          >
+                            Activate
+                          </button>
+                        )}
+                      </Td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>
@@ -159,12 +207,16 @@ export default function OwnersList(){
               className="rounded-lg border px-3 py-1.5 disabled:opacity-50"
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >Prev</button>
+            >
+              Prev
+            </button>
             <button
               className="rounded-lg border px-3 py-1.5 disabled:opacity-50"
-              disabled={rows.length < pageSize}
+              disabled={page * pageSize >= total}
               onClick={() => setPage((p) => p + 1)}
-            >Next</button>
+            >
+              Next
+            </button>
           </div>
         </div>
       </div>
@@ -173,7 +225,11 @@ export default function OwnersList(){
 }
 
 function Th({ children, className = "" }) {
-  return <th className={`text-left font-medium px-4 py-3 border-b ${className}`}>{children}</th>;
+  return (
+    <th className={`text-left font-medium px-4 py-3 border-b ${className}`}>
+      {children}
+    </th>
+  );
 }
 function Td({ children, className = "" }) {
   return <td className={`px-4 py-3 ${className}`}>{children}</td>;
@@ -184,7 +240,11 @@ function Badge({ children, color = "gray" }) {
     gray: "bg-gray-100 text-gray-700 border-gray-200",
   };
   return (
-    <span className={`inline-flex items-center rounded-full text-xs px-2 py-1 border ${map[color] || map.gray}`}>
+    <span
+      className={`inline-flex items-center rounded-full text-xs px-2 py-1 border ${
+        map[color] || map.gray
+      }`}
+    >
       {children}
     </span>
   );
