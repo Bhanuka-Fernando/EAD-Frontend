@@ -1,7 +1,9 @@
+// src/App.jsx
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import RoleGate from "./auth/RoleGate";
+import AppShell from "./layouts/AppShell";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -10,56 +12,89 @@ import BackofficeDashboard from "./pages/BackofficeDashboard";
 import OperatorDashboard from "./pages/OperatorDashboard";
 import Unauthorized from "./pages/Unauthorized";
 import MyProfile from "./pages/MyProfile_web";
+
+// Owners
 import OwnersList from "./pages/owners/OwnersList";
 import OwnerUpsert from "./pages/owners/OwnerUpsert";
+
+// Stations
 import StationsList from "./pages/stations/StationsList";
 import StationUpsert from "./pages/stations/StationUpsert";
 import StationSchedule from "./pages/stations/StationSchedule";
 
+// Bookings
+import BookingsList from "./pages/bookings/BookingsList";
 
 const router = createBrowserRouter([
+  // Public (no navbar)
   { path: "/", element: <Login /> },
   { path: "/login", element: <Login /> },
 
+  // Protected (navbar via AppShell)
   {
-    element: <ProtectedRoute />, // requires a valid token
+    element: <ProtectedRoute />,
     children: [
-      { path: "/dashboard", element: <Dashboard /> },
-
       {
-        element: <RoleGate allowed={["Backoffice"]} />,
+        element: <AppShell />,
         children: [
-          { path: "/backoffice", element: <BackofficeDashboard /> },
-          { path: "/register", element: <Register /> },
-          { path: "/owners", element: <OwnersList /> },
-          { path: "/owners/new", element: <OwnerUpsert /> },
-          { path: "/owners/:nic", element: <OwnerUpsert /> },
-          { path: "/stations", element: <StationsList /> },
-          { path: "/stations/new", element: <StationUpsert /> },
-          { path: "/stations/:id", element: <StationUpsert /> },
-          { path: "/stations/:id/schedule", element: <StationSchedule /> },
-        ],
-      },
-      {
-        element: <RoleGate allowed={["Operator"]} />,
-        children: [
-          { path: "/operator", element: <OperatorDashboard /> },
-          { path: "/stations", element: <StationsList /> },          
-          { path: "/stations/:id/schedule", element: <StationSchedule /> },
-        ],
-      },
+          // Smart forwarder after login
+          { path: "/dashboard", element: <Dashboard /> },
 
-      { element:<RoleGate allowed={["Backoffice","Operator"]}/>,
-        children: [
-          { path: "/me/profile", element: <MyProfile/>},
+          // Backoffice-only
+          {
+            element: <RoleGate allowed={["Backoffice"]} />,
+            children: [
+              { path: "/backoffice", element: <BackofficeDashboard /> },
+              { path: "/register", element: <Register /> },
+
+              // EV Owners
+              { path: "/owners", element: <OwnersList /> },
+              { path: "/owners/new", element: <OwnerUpsert /> },
+              { path: "/owners/:nic", element: <OwnerUpsert /> },
+
+              // Stations
+              { path: "/stations", element: <StationsList /> },
+              { path: "/stations/new", element: <StationUpsert /> },
+              { path: "/stations/:id", element: <StationUpsert /> },
+              { path: "/stations/:id/schedule", element: <StationSchedule /> },
+
+              // Bookings (read-only for Backoffice)
+              { path: "/bookings", element: <BookingsList /> },
+            ],
+          },
+
+          // Operator-only
+          {
+            element: <RoleGate allowed={["Operator"]} />,
+            children: [
+              { path: "/operator", element: <OperatorDashboard /> },
+
+              // Stations (list + schedule)
+              { path: "/stations", element: <StationsList /> },
+              { path: "/stations/:id/schedule", element: <StationSchedule /> },
+
+              // Bookings (approve/finalize buttons inside component)
+              { path: "/bookings", element: <BookingsList /> },
+            ],
+          },
+
+          // Shared (Backoffice & Operator)
+          {
+            element: <RoleGate allowed={["Backoffice", "Operator"]} />,
+            children: [
+              { path: "/me/profile", element: <MyProfile /> },
+            ],
+          },
+
+          // Unauthorized (show navbar too)
+          { path: "/unauthorized", element: <Unauthorized /> },
         ],
       },
-
-      { path: "/unauthorized", element: <Unauthorized /> },
     ],
   },
 
-  { path: "*", element: <Login /> }
+  // Fallback
+  { path: "*", element: <Login /> },
 ]);
 
 export default function App() {

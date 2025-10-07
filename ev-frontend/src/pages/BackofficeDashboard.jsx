@@ -1,7 +1,6 @@
 import { useAuth } from "../auth/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import ProfileIconLink from "../components/ProfileIconLink";
-import AppNavbar from "../components/AppNavbar";
 
 export default function BackofficeDashboard() {
   const { user, signOut } = useAuth();
@@ -10,8 +9,6 @@ export default function BackofficeDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AppNavbar />
-
       {/* Content */}
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         {/* KPIs */}

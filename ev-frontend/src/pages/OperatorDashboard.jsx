@@ -1,6 +1,5 @@
 import { useAuth } from "../auth/AuthContext";
 import { useNavigate } from "react-router-dom";
-import AppNavbar from "../components/AppNavbar";
 
 export default function OperatorDashboard() {
   const { user, signOut } = useAuth();
@@ -9,7 +8,6 @@ export default function OperatorDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AppNavbar />
       <div className="max-w-6xl mx-auto">
         
 
