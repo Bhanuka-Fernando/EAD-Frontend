@@ -12,6 +12,7 @@ import BackofficeDashboard from "./pages/BackofficeDashboard";
 import OperatorDashboard from "./pages/OperatorDashboard";
 import Unauthorized from "./pages/Unauthorized";
 import MyProfile from "./pages/MyProfile_web";
+import UsersList from "./pages/users/UsersList";
 
 // Owners
 import OwnersList from "./pages/owners/OwnersList";
@@ -45,6 +46,7 @@ const router = createBrowserRouter([
             element: <RoleGate allowed={["Backoffice"]} />,
             children: [
               { path: "/backoffice", element: <BackofficeDashboard /> },
+              { path: "/users", element: <UsersList />},
               { path: "/register", element: <Register /> },
 
               // EV Owners

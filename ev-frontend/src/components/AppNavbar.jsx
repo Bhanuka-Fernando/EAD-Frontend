@@ -14,10 +14,10 @@ export default function AppNavbar() {
   // Menu config (same component, filtered by role)
   const items = [
     { to: "/dashboard", label: "Dashboard", roles: ["Backoffice","Operator"] },
-    { to: "/owners",    label: "Owners",    roles: ["Backoffice"] },       // hidden for Operator
+    { to: "/owners",    label: "Ev_Owners",    roles: ["Backoffice"] },       // hidden for Operator
     { to: "/stations",  label: "Stations",  roles: ["Backoffice","Operator"] },
     { to: "/bookings",  label: "Bookings",  roles: ["Backoffice","Operator"] },
-    { to: "/register",  label: "Users",     roles: ["Backoffice"] },       // create web users
+    { to: "/users",     label: "Users",     roles: ["Backoffice"]},
     // add more as needed (Audit, Reports etc.)
   ].filter(i => !role || i.roles.includes(role));
 
