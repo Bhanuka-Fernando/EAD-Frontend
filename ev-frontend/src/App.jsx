@@ -9,7 +9,6 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import BackofficeDashboard from "./pages/BackofficeDashboard";
-import OperatorDashboard from "./pages/OperatorDashboard";
 import Unauthorized from "./pages/Unauthorized";
 import MyProfile from "./pages/MyProfile_web";
 import UsersList from "./pages/users/UsersList";
@@ -26,12 +25,16 @@ import StationSchedule from "./pages/stations/StationSchedule";
 // Bookings
 import BookingsList from "./pages/bookings/BookingsList";
 
+// Operator
+import OperatorApprovals from "./pages/operator/OperatorApprovals";
+import OperatorScan from "./pages/operator/operatorScan";
+import OperatorDashboard from "./pages/OperatorDashboard";
+
 const router = createBrowserRouter([
   // Public (no navbar)
   { path: "/", element: <Login /> },
   { path: "/login", element: <Login /> },
 
-  // Protected (navbar via AppShell)
   {
     element: <ProtectedRoute />,
     children: [
@@ -59,8 +62,6 @@ const router = createBrowserRouter([
               { path: "/stations/new", element: <StationUpsert /> },
               { path: "/stations/:id", element: <StationUpsert /> },
               { path: "/stations/:id/schedule", element: <StationSchedule /> },
-
-              // Bookings (read-only for Backoffice)
               { path: "/bookings", element: <BookingsList /> },
             ],
           },
@@ -70,6 +71,8 @@ const router = createBrowserRouter([
             element: <RoleGate allowed={["Operator"]} />,
             children: [
               { path: "/operator", element: <OperatorDashboard /> },
+              { path: "/operator/approvals", element: <OperatorApprovals /> },
+              { path: "/operator/scan", element: <OperatorScan /> },
 
               // Stations (list + schedule)
               { path: "/stations", element: <StationsList /> },
