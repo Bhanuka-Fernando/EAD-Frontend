@@ -5,12 +5,12 @@ import ProtectedRoute from "./auth/ProtectedRoute";
 import RoleGate from "./auth/RoleGate";
 import AppShell from "./layouts/AppShell";
 
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+import Login from "./pages/common_pages/Login";
+import Register from "./pages/common_pages/Register";
 import Dashboard from "./pages/Dashboard";
 import BackofficeDashboard from "./pages/BackofficeDashboard";
 import Unauthorized from "./pages/Unauthorized";
-import MyProfile from "./pages/MyProfile_web";
+import MyProfile from "./pages/common_pages/MyProfile_web";
 import UsersList from "./pages/users/UsersList";
 
 // Owners
@@ -28,7 +28,9 @@ import BookingsList from "./pages/bookings/BookingsList";
 // Operator
 import OperatorApprovals from "./pages/operator/OperatorApprovals";
 import OperatorScan from "./pages/operator/operatorScan";
-import OperatorDashboard from "./pages/OperatorDashboard";
+import OperatorDashboard from "./pages/operator/OperatorDashboard";
+import StationDetails from "./pages/operator/StationDetails";
+import OperatorBookings from "./pages/operator/OperatorBookings";
 
 const router = createBrowserRouter([
   // Public (no navbar)
@@ -75,11 +77,9 @@ const router = createBrowserRouter([
               { path: "/operator/scan", element: <OperatorScan /> },
 
               // Stations (list + schedule)
-              { path: "/stations", element: <StationsList /> },
+              { path: "/stationDetails", element: <StationDetails /> },
               { path: "/stations/:id/schedule", element: <StationSchedule /> },
-
-              // Bookings (approve/finalize buttons inside component)
-              { path: "/bookings", element: <BookingsList /> },
+              { path: "/operator/bookings", element: <OperatorBookings /> },
             ],
           },
 

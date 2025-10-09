@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import toast, { Toaster } from "react-hot-toast";
-import usersApi from "../api/usersApi";
+import usersApi from "../../api/usersApi";
 
 // ---- Schemas ----
 const profileSchema = z.object({

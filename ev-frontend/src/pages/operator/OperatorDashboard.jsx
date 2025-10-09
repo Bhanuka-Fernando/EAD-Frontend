@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
-import stationsApi from "../api/stationsApi";
-import bookingsApi from "../api/bookingsApi";
+import { useAuth } from "../../auth/AuthContext";
+import usersApi from "../../api/usersApi";
+import stationsApi from "../../api/stationsApi";
+import bookingsApi from "../../api/bookingsApi";
 import toast from "react-hot-toast";
 
 function Kpi({ title, primary = "—", secondary = "" }) {
@@ -23,9 +24,7 @@ function Badge({ children, color = "gray" }) {
     blue: "bg-blue-50 text-blue-700 border-blue-100",
   };
   return (
-    <span
-      className={`inline-flex items-center rounded-full text-xs px-2 py-1 border ${map[color] || map.gray}`}
-    >
+    <span className={`inline-flex items-center rounded-full text-xs px-2 py-1 border ${map[color] || map.gray}`}>
       {children}
     </span>
   );
@@ -41,11 +40,10 @@ function Td({ children, className = "" }) {
 export default function OperatorDashboard() {
   const { user } = useAuth();
 
-  const [stations, setStations] = useState([]);
   const [stationId, setStationId] = useState("");
-  const [todayRows, setTodayRows] = useState([]);
+  const [stationName, setStationName] = useState("—");
+  const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [kpi, setKpi] = useState({
     pending: 0,
     approved: 0,
@@ -61,73 +59,94 @@ export default function OperatorDashboard() {
     return `${yyyy}-${mm}-${dd}`;
   }, []);
 
+  const formatDateTime = (val) => {
+    if (!val) return "—";
+    const d = new Date(val);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleString();
+  };
+
+  // 1) Load my profile (support both {profile:{…}} and flat {…}) and lock to first station
   useEffect(() => {
     (async () => {
       try {
-        const res = await stationsApi.list({});
-        const items = Array.isArray(res) ? res : res.items ?? [];
-        setStations(items);
-        if (items.length) setStationId(items[0].id);
+        const meRaw = await usersApi.getMyProfile();
+        const me = meRaw?.profile ?? meRaw; // <-- important
+        const ids = me?.stationIds || me?.StationIds || [];
+        if (!ids.length) {
+          setStationId("");
+          setLoading(false);
+          toast.error("No station assigned to your account. Please contact Backoffice.");
+          return;
+        }
+        const sid = ids[0];
+        setStationId(sid);
+
+        // station name + capacity for today
+        const st = await stationsApi.get(sid);
+        setStationName(st.name || "—");
+
+        const total = st.totalSlots ?? st.TotalSlots ?? "-";
+        const day = (st.schedule || st.Schedule || []).find((d) => d.date === today || d.Date === today);
+        const avail = typeof (day?.availableSlots ?? day?.AvailableSlots) === "number"
+          ? (day.availableSlots ?? day.AvailableSlots)
+          : total;
+
+        setKpi((k) => ({ ...k, capacity: { avail, total } }));
       } catch (e) {
-        toast.error(e.message || "Failed to load stations");
+        toast.error(e?.message || "Failed to load profile/station");
+        setLoading(false);
       }
     })();
-  }, []);
+  }, [today]);
 
+  // 2) Load bookings for the assigned station (server already scopes by StationIds)
   useEffect(() => {
     if (!stationId) return;
     (async () => {
       try {
         setLoading(true);
+
         const data = await bookingsApi.list({
-          q: "",
           status: "All",
-          stationId,
-          from: `${today}T00:00:00Z`,
-          to: `${today}T23:59:59Z`,
           page: 1,
-          pageSize: 50,
+          pageSize: 200,
+          // stationId not required; server restricts by operator scope
         });
-        const items = Array.isArray(data) ? data : data.items ?? [];
-        setTodayRows(items);
+        const all = Array.isArray(data) ? data : data.items ?? [];
 
-        // KPIs
-        const pending = items.filter((b) => String(b.status).toLowerCase() === "pending").length;
-        const approved = items.filter((b) => String(b.status).toLowerCase() === "approved").length;
-        const completed = items.filter((b) => String(b.status).toLowerCase() === "completed").length;
+        // Normalize fields + keep only current station (defensive)
+        const normalized = all.map((b) => ({
+          id: b.id ?? b.Id,
+          stationId: b.stationId ?? b.StationId,
+          status: b.status ?? b.Status,
+          ownerName:
+            b.ownerFullName ??
+            b.owner?.fullName ??
+            b.ownerName ??
+            b.ownerNic ??
+            b.nic ??
+            "—",
+          start: b.startTimeUtc ?? b.startTime ?? b.StartTimeUtc ?? b.StartTime,
+          end: b.endTimeUtc ?? b.endTime ?? b.EndTimeUtc ?? b.EndTime,
+        })).filter((x) => x.stationId === stationId);
 
-        // Capacity
-        let avail = "-";
-        let total = "-";
-        try {
-          const st = await stationsApi.get(stationId);
-          total = st.totalSlots ?? "-";
-          const day = (st.schedule || []).find((d) => d.date === today);
-          avail = day ? day.availableSlots : "—";
-        } catch {
-          /* ignore */
-        }
+        setRows(normalized);
 
-        setKpi({ pending, approved, completed, capacity: { avail, total } });
+        const toLower = (s) => String(s || "").toLowerCase();
+        setKpi((k) => ({
+          ...k,
+          pending: normalized.filter((b) => toLower(b.status) === "pending").length,
+          approved: normalized.filter((b) => toLower(b.status) === "approved").length,
+          completed: normalized.filter((b) => toLower(b.status) === "completed").length,
+        }));
       } catch (e) {
-        toast.error(e.message || "Failed to load bookings");
+        toast.error(e?.message || "Failed to load bookings");
       } finally {
         setLoading(false);
       }
     })();
-  }, [stationId, today]);
-
-  const formatDateTime = (val) => {
-    if (!val) return "—";
-    const d = new Date(val);
-    if (isNaN(d.getTime())) return "—";
-    return d.toLocaleString();
-  };
-
-  const getStationName = (id) => {
-    const s = stations.find((x) => x.id === id);
-    return s ? s.name : "—";
-  };
+  }, [stationId]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -135,23 +154,15 @@ export default function OperatorDashboard() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Operator Dashboard</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">
+              Operator Dashboard<span className="text-gray-400"> — {stationName}</span>
+            </h1>
             <p className="text-xs text-gray-500">
               Welcome back{user?.sub ? `, ${user.sub}` : ""}.
             </p>
           </div>
+
           <div className="flex items-center gap-3">
-            <select
-              value={stationId}
-              onChange={(e) => setStationId(e.target.value)}
-              className="rounded-lg border px-3 py-2 text-sm"
-            >
-              {stations.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
             <Link
               to={stationId ? `/stations/${stationId}/schedule` : "/stations"}
               className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50"
@@ -185,12 +196,12 @@ export default function OperatorDashboard() {
           />
         </div>
 
-        {/* Today’s bookings */}
+        {/* Bookings */}
         <div className="rounded-2xl border bg-white">
           <div className="p-5 border-b flex items-center justify-between">
-            <h2 className="font-semibold">Today’s bookings</h2>
+            <h2 className="font-semibold">Bookings</h2>
             <div className="text-sm text-gray-500">
-              {loading ? "Loading…" : `${todayRows.length} shown`}
+              {loading ? "Loading…" : `${rows.length} shown`}
             </div>
           </div>
           <div className="overflow-x-auto">
@@ -198,7 +209,6 @@ export default function OperatorDashboard() {
               <thead className="bg-gray-50 text-gray-600">
                 <tr>
                   <Th>Owner</Th>
-                  <Th>Station</Th>
                   <Th>Start</Th>
                   <Th>End</Th>
                   <Th>Status</Th>
@@ -208,59 +218,42 @@ export default function OperatorDashboard() {
               <tbody className="divide-y">
                 {loading && (
                   <tr>
-                    <td colSpan={6} className="p-6 text-center text-gray-400">
+                    <td colSpan={5} className="p-6 text-center text-gray-400">
                       Loading…
                     </td>
                   </tr>
                 )}
-                {!loading && todayRows.length === 0 && (
+                {!loading && rows.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-6 text-center text-gray-400">
-                      No bookings today
+                    <td colSpan={5} className="p-6 text-center text-gray-400">
+                      No bookings
                     </td>
                   </tr>
                 )}
                 {!loading &&
-                  todayRows.map((b) => {
-                    const st = String(b.status).toLowerCase();
+                  rows.map((b) => {
+                    const st = String(b.status || "").toLowerCase();
                     const color =
-                      st === "pending"
-                        ? "amber"
-                        : st === "approved"
-                        ? "blue"
-                        : st === "completed"
-                        ? "green"
-                        : "gray";
-
-                    const owner =
-                      b.owner?.fullName ||
-                      b.ownerName ||
-                      b.ownerNic ||
-                      "—";
+                      st === "pending" ? "amber" :
+                      st === "approved" ? "blue" :
+                      st === "completed" ? "green" : "gray";
 
                     return (
                       <tr key={b.id} className="bg-white/60">
-                        <Td>{owner}</Td>
-                        <Td>{getStationName(b.stationId)}</Td>
-                        <Td>{formatDateTime(b.startTime)}</Td>
-                        <Td>{formatDateTime(b.endTime)}</Td>
+                        <Td>{b.ownerName}</Td>
+                        <Td>{formatDateTime(b.start)}</Td>
+                        <Td>{formatDateTime(b.end)}</Td>
                         <Td>
                           <Badge color={color}>{b.status}</Badge>
                         </Td>
                         <Td className="text-right pr-4">
                           {st === "pending" && (
-                            <Link
-                              to="/operator/approvals"
-                              className="text-blue-600 hover:underline"
-                            >
+                            <Link to="/operator/approvals" className="text-blue-600 hover:underline">
                               Approve
                             </Link>
                           )}
                           {st === "approved" && (
-                            <Link
-                              to="/operator/scan"
-                              className="text-emerald-700 hover:underline"
-                            >
+                            <Link to="/operator/scan" className="text-emerald-700 hover:underline">
                               Finalize
                             </Link>
                           )}

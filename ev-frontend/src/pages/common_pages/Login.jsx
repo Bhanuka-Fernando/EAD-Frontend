@@ -1,9 +1,9 @@
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { authApi } from "../api/authApi";
-import { useAuth } from "../auth/AuthContext";
-import { useRole } from "../auth/useRole";
+import { authApi } from "../../api/authApi";
+import { useAuth } from "../../auth/AuthContext";
+import { useRole } from "../../auth/useRole";
 import toast, { Toaster } from "react-hot-toast";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useState } from "react";

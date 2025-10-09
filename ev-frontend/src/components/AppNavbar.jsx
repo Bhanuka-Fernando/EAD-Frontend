@@ -15,9 +15,11 @@ export default function AppNavbar() {
   const items = [
     { to: "/dashboard", label: "Dashboard", roles: ["Backoffice","Operator"] },
     { to: "/owners",    label: "Ev_Owners",    roles: ["Backoffice"] },       // hidden for Operator
-    { to: "/stations",  label: "Stations",  roles: ["Backoffice","Operator"] },
-    { to: "/bookings",  label: "Bookings",  roles: ["Backoffice","Operator"] },
+    { to: "/stations",  label: "Stations",  roles: ["Backoffice"] },
+    { to: "/bookings",  label: "Bookings",  roles: ["Backoffice"] },
     { to: "/users",     label: "Users",     roles: ["Backoffice"]},
+    { to: "/stationDetails",     label: "Station Details",     roles: ["Operator"]},
+    { to: "/operator/bookings",     label: "Bookings",     roles: ["Operator"]},
     // add more as needed (Audit, Reports etc.)
   ].filter(i => !role || i.roles.includes(role));
 
