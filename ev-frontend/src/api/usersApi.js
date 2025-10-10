@@ -33,6 +33,9 @@ async function findByEmail(email) {
   return res.items?.[0] ?? null;
 }
 
+const activate   = (id) => axiosClient.post(`${ADMIN_BASE}/${encodeURIComponent(id)}/activate`);
+const deactivate = (id) => axiosClient.post(`${ADMIN_BASE}/${encodeURIComponent(id)}/deactivate`);
+
 // profile calls you already use elsewhere
 const getMyProfile     = () => axiosClient.get("/users/me/profile").then(r => r.data);
 const updateMyProfile  = (payload) => axiosClient.put("/users/me/profile", payload).then(r => r.data);
@@ -45,6 +48,8 @@ export const usersApi = {
   findByEmail,
   getMyProfile,
   updateMyProfile,
+  activate, 
+  deactivate, 
   changeMyPassword,
 };
 export default usersApi;
